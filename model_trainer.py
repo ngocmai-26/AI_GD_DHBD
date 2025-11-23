@@ -36,6 +36,7 @@ import config
 for dir_path in config.OUTPUT_DIRS.values():
     os.makedirs(dir_path, exist_ok=True)
 
+#chuẩn bị ma trận đặc trưng và nhãn đặc trưng
 def prepare_features(df, feature_cols):
     """Prepare features and target for modeling with feature selection"""
     # Select numeric features only
@@ -93,8 +94,12 @@ def prepare_features(df, feature_cols):
     
     return X_imputed, y, numeric_features
 
+#Huấn luyện mô hình
 def train_models(X, y, cv_folds=5, test_size=0.2):
     """Train optimized models with 5-fold cross-validation and separate test set"""
+    
+    #Chia train/test
+
     
     # Split data into train and test sets
     X_train_full, X_test, y_train_full, y_test = train_test_split(
@@ -106,7 +111,8 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
     print(f"  Test set: {len(X_test)} samples ({len(X_test)/len(X)*100:.1f}%)")
     print(f"  Training target distribution: Pass={np.sum(y_train_full)}, Fail={np.sum(1-y_train_full)}")
     print(f"  Test target distribution: Pass={np.sum(y_test)}, Fail={np.sum(1-y_test)}")
-    
+
+    #Tính class weights (xử lý mất cân bằng)
     # Calculate class weights for imbalanced data (based on training set only)
     from sklearn.utils.class_weight import compute_class_weight
     classes = np.unique(y_train_full)
@@ -114,7 +120,8 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
     class_weight_dict = dict(zip(classes, class_weights))
     
     print(f"\nClass weights (to handle imbalance): {class_weight_dict}")
-    
+
+    #Khởi tạo các mô hình
     # Initialize optimized models with better hyperparameters
     models = {
         'LogisticRegression': LogisticRegression(
@@ -178,7 +185,8 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
             colsample_bytree=0.8,
             min_child_weight=3
         )
-    
+
+    #Chuẩn hóa dữ liệu
     # Use different scalers for different model types
     # Fit scalers on training data ONLY, then transform both train and test
     scaler_standard = StandardScaler()
@@ -203,7 +211,8 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
     test_set_path = os.path.join(config.OUTPUT_DIRS['data'], 'test_set.pkl')
     joblib.dump({'X_test': X_test, 'y_test': y_test}, test_set_path)
     
-    
+
+    #Thực hiện 5 lần phân tầng
     # Cross-validation on training set only
     cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
     
@@ -214,7 +223,8 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
     print(f"Training models with {cv_folds}-fold cross-validation")
     print(f"Note: CV on training set, final evaluation on test set")
     print(f"{'='*60}")
-    
+
+    #Huấn luyện trên toàn bộ tập train
     for model_name, model in models.items():
         print(f"\nTraining {model_name}...")
         
@@ -294,6 +304,7 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
         f1 = test_f1
         balanced_acc = test_balanced_acc
         
+        #Đánh giá trên tập train và tập test
         # Confusion matrix on TEST SET
         cm = confusion_matrix(y_test, y_test_pred)
         
@@ -358,7 +369,7 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
         
         results[model_name] = metrics
         trained_models[model_name] = model
-        
+       
         print(f"  CV Accuracy (train): {metrics['cv_accuracy_mean']:.4f} (+/- {metrics['cv_accuracy_std']:.4f})")
         print(f"  CV F1-Score (train): {metrics['cv_f1_mean']:.4f} (+/- {metrics['cv_f1_std']:.4f})")
         print(f"  Training Accuracy: {metrics['train_accuracy']:.4f}")
