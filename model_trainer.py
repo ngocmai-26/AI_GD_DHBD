@@ -125,53 +125,56 @@ def train_models(X, y, cv_folds=5, test_size=0.2):
     # Initialize optimized models with better hyperparameters
     models = {
         'LogisticRegression': LogisticRegression(
-            random_state=42, 
-            max_iter=10000,
-            class_weight='balanced',
-            C=0.01,  # Very strong regularization to prevent overflow
-            solver='lbfgs',
-            penalty='l2',
-            n_jobs=-1,
-            tol=1e-5,
-            warm_start=False
+            random_state=42,          # cố định seed để kết quả lặp lại
+            max_iter=10000,           # số vòng lặp tối đa để hội tụ
+            class_weight='balanced',  # tự cân bằng lớp Pass/Fail
+            C=0.01,                   # hệ số regularization mạnh (giảm overfitting)
+            solver='lbfgs',           # thuật toán tối ưu
+            penalty='l2',             # chuẩn L2 (ridge) chống overfitting
+            n_jobs=-1,                # dùng toàn bộ CPU
+            tol=1e-5,                 # ngưỡng dừng hội tụ
+            warm_start=False          # không dùng trạng thái training trước đó
         ),
+    
         'DecisionTree': DecisionTreeClassifier(
-            random_state=42,
-            class_weight='balanced',
-            max_depth=12,  # Reduced depth to prevent overfitting
-            min_samples_split=50,  # Increased minimum samples
-            min_samples_leaf=25,  # Increased minimum leaf samples
-            max_features='sqrt',
-            min_impurity_decrease=0.001  # Additional regularization
+            random_state=42,          # cố định seed
+            class_weight='balanced',  # cân bằng lớp
+            max_depth=12,             # giới hạn độ sâu để tránh overfit
+            min_samples_split=50,     # số mẫu tối thiểu để tách node
+            min_samples_leaf=25,      # số mẫu tối thiểu trong leaf
+            max_features='sqrt',      # số đặc trưng được chọn tại mỗi split
+            min_impurity_decrease=0.001  # yêu cầu giảm impurity tối thiểu
         ),
+    
         'RandomForest': RandomForestClassifier(
-            n_estimators=300,  # More trees but with regularization
-            random_state=42,
-            class_weight='balanced',
-            max_depth=15,  # Reduced from 20 to prevent overfitting
-            min_samples_split=20,  # Increased from 10
-            min_samples_leaf=10,  # Increased from 5
-            max_features='sqrt',
-            min_impurity_decrease=0.001,
-            n_jobs=-1,
-            oob_score=True,
-            bootstrap=True
+            n_estimators=300,         # số lượng cây (300 cây)
+            random_state=42,          # cố định seed
+            class_weight='balanced',  # cân bằng lớp
+            max_depth=15,             # giới hạn độ sâu của mỗi cây
+            min_samples_split=20,     # số mẫu tối thiểu để split
+            min_samples_leaf=10,      # số mẫu tối thiểu trong leaf
+            max_features='sqrt',      # số đặc trưng chọn tại mỗi split
+            min_impurity_decrease=0.001, # mức giảm impurity tối thiểu
+            n_jobs=-1,                # dùng toàn bộ CPU
+            oob_score=True,           # tính lỗi OOB (đánh giá ngoài bag)
+            bootstrap=True            # bật bootstrap sampling (bagging)
         ),
+    
         'MLP': MLPClassifier(
-            hidden_layer_sizes=(100, 50),  # Simpler network
-            random_state=42, 
-            max_iter=2000,
-            alpha=0.05,  # Increased regularization
-            learning_rate='adaptive',
-            learning_rate_init=0.001,
-            early_stopping=True,
-            validation_fraction=0.1,
-            n_iter_no_change=30,
-            batch_size='auto',
-            tol=1e-6
+            hidden_layer_sizes=(100, 50),  # mạng 2 lớp ẩn: 100 neuron & 50 neuron
+            random_state=42,               # cố định seed
+            max_iter=2000,                 # số epoch tối đa
+            alpha=0.05,                    # hệ số regularization L2
+            learning_rate='adaptive',      # giảm learning rate theo hiệu suất
+            learning_rate_init=0.001,      # learning rate ban đầu
+            early_stopping=True,           # dừng sớm nếu không cải thiện
+            validation_fraction=0.1,       # 10% dữ liệu train để validation
+            n_iter_no_change=30,           # số epoch không cải thiện để dừng
+            batch_size='auto',             # batch size mặc định
+            tol=1e-6                       # ngưỡng hội tụ
         )
     }
-    
+
     # Add XGBoost if available with optimized parameters
     if XGBOOST_AVAILABLE:
         models['XGBoost'] = XGBClassifier(
